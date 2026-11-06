@@ -24,7 +24,9 @@ jobs:
           WINDSOR_API_KEY: ${{ secrets.WINDSOR_API_KEY }}
         run: |
           if [ -n "$WINDSOR_API_KEY" ]; then
-            python update_data.py
+            if ! python update_data.py; then
+              echo '::warning::Windsor.ai import failed or timed out. Publishing the last confirmed dashboard snapshot; data has NOT refreshed.'
+            fi
           else
             echo "Windsor API key not set yet. Publishing dashboard with pending-data message."
           fi
