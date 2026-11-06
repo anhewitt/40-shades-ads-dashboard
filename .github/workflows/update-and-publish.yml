@@ -19,12 +19,15 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Fetch Amazon Ads from Windsor.ai
-        if: ${{ env.HAS_KEY == 'yes' }}
+      - name: Fetch Amazon Ads from Windsor.ai (when configured)
         env:
           WINDSOR_API_KEY: ${{ secrets.WINDSOR_API_KEY }}
-          HAS_KEY: ${{ secrets.WINDSOR_API_KEY != '' && 'yes' || 'no' }}
-        run: python update_data.py
+        run: |
+          if [ -n "$WINDSOR_API_KEY" ]; then
+            python update_data.py
+          else
+            echo "Windsor API key not set yet. Publishing dashboard with pending-data message."
+          fi
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload site
