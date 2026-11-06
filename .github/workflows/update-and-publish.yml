@@ -1,0 +1,36 @@
+name: Refresh and publish 40 Shades dashboard
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '15 7 * * *'
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Fetch Amazon Ads from Windsor.ai
+        if: ${{ env.HAS_KEY == 'yes' }}
+        env:
+          WINDSOR_API_KEY: ${{ secrets.WINDSOR_API_KEY }}
+          HAS_KEY: ${{ secrets.WINDSOR_API_KEY != '' && 'yes' || 'no' }}
+        run: python update_data.py
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - name: Publish site
+        id: deployment
+        uses: actions/deploy-pages@v4
