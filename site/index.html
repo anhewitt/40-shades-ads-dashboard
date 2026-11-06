@@ -1,12 +1,189 @@
-<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>40 Shades | Amazon Advertising</title><style>
-:root{font-family:system-ui,Segoe UI,sans-serif;color:#eef4ff;background:#091323}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 85% 5%,#263956,#091323 55%)}main{max-width:1120px;margin:auto;padding:40px 20px}header{display:flex;justify-content:space-between;gap:25px;flex-wrap:wrap;align-items:center}h1{font-size:clamp(30px,5vw,48px);margin:5px 0}.eyebrow{color:#f0c87e;letter-spacing:.18em;font-size:12px;font-weight:700}.sub,p{color:#c2cee0}.status,.card,.insight{background:#17263d;border:1px solid #324560;border-radius:17px;padding:22px}.status{font-size:13px;max-width:330px}.buttons{display:flex;gap:8px;margin:28px 0;flex-wrap:wrap}button{padding:10px 15px;background:#1b2e48;border:1px solid #3b526c;color:white;border-radius:22px;cursor:pointer}button.active{background:#f0c87e;color:#142238}.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}.book{font-size:22px;margin:0 0 20px}.big{font-size:38px;font-weight:750;color:#f0c87e}.caption{font-size:12px;color:#b1c1d5}.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;border-top:1px solid #334761;margin-top:18px;padding-top:18px}.metric strong{display:block;font-size:22px}.metric small{color:#b1c1d5}h2{font-size:23px;margin:30px 0 12px}.insight p{margin:8px 0}.term{display:flex;justify-content:space-between;gap:15px;border-bottom:1px solid #34445c;padding:9px 0}.term:last-child{border:0}.dictionary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.dictionary p{font-size:13px;margin:7px 0}footer{font-size:12px;color:#a9b8c9;margin-top:30px}@media(max-width:700px){.cards,.dictionary{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,1fr)}}
-</style><main><header><div><div class="eyebrow">40 SHADES / AMAZON ADS</div><h1>Are the adverts working?</h1><p class="sub">Two books. One simple view. What we spent, what happened and what to do next.</p></div><div class="status" id="status">Checking latest published data…</div></header><nav class="buttons"><button data-days="7" class="active">Last 7 days</button><button data-days="30">Last 30 days</button><button data-days="all">Since launch</button><button id="reload">Check for newly published data</button></nav><div class="cards" id="cards"></div><h2>The takeaway</h2><section class="insight" id="insights"></section><h2>What shoppers searched for</h2><div class="cards" id="terms"></div><h2>What the numbers mean</h2><div class="dictionary"><div class="card"><b>Impressions</b><p>Times Amazon displayed your advert, not unique people.</p></div><div class="card"><b>Clicks and CTR</b><p>Clicks are visits; CTR is clicks per 100 impressions. It indicates interest.</p></div><div class="card"><b>CPC</b><p>Average advertising cost per click. A click is not a purchase.</p></div><div class="card"><b>Sales</b><p>Sales credited to ads, not total KDP sales. Recent attribution can lag.</p></div><div class="card"><b>ACoS</b><p>Ad spend ÷ ad-attributed sales × 100. £2 spent to create £10 sales = 20% ACoS.</p></div><div class="card"><b>Profit</b><p>Retail price isn't your profit. We need the KDP royalty per sale to assess payback.</p></div></div><footer>Data: Windsor.ai Amazon Ads UK via a scheduled GitHub Actions import. Browser refresh shows the last published snapshot; it does not fetch Amazon directly. This website is public. No API secrets are published.</footer></main><script>
-let db=null,windowDays='7';const dash='—';const pounds=n=>n==null?dash:'£'+Number(n).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});const number=n=>n==null?dash:Math.round(n).toLocaleString('en-GB');const pct=n=>n==null?dash:n.toFixed(2)+'%';
-function summary(name){const raw=db?.campaigns?.[name]||[];const end=new Date();const from=new Date(Date.UTC(end.getUTCFullYear(),end.getUTCMonth(),end.getUTCDate()-Number(windowDays)+1));const rows=windowDays==='all'?raw:raw.filter(r=>new Date(r.date+'T00:00:00Z')>=from);const out={days:rows.length};for(const f of ['impressions','clicks','spend','sales','orders']){const values=rows.map(r=>r[f]).filter(v=>v!==null&&v!==undefined&&v!=='');out[f]=values.length?values.reduce((a,b)=>a+Number(b),0):null}return out}
-function metric(label,value){return '<div class="metric"><small>'+label+'</small><strong>'+value+'</strong></div>'}
-function card(name){const s=summary(name),ok=!!s.days;const ctr=ok&&s.impressions&&s.clicks!=null?s.clicks/s.impressions*100:null;const cpc=ok&&s.clicks&&s.spend!=null?s.spend/s.clicks:null;const acos=ok&&s.sales&&s.spend!=null?s.spend/s.sales*100:null;return '<section class="card"><h3 class="book">40 Shades of '+name+'</h3><div class="caption">Sales attributed to Amazon Ads</div><div class="big">'+(ok?pounds(s.sales):dash)+'</div><p>'+(ok?'Within the selected date range':'Campaign data awaiting first successful import')+'</p><div class="metrics">'+metric('Ad spend',ok?pounds(s.spend):dash)+metric('Times shown',ok?number(s.impressions):dash)+metric('Clicks',ok?number(s.clicks):dash)+metric('CTR',pct(ctr))+metric('CPC',pounds(cpc))+metric('Orders',ok?number(s.orders):dash)+metric('ACoS',pct(acos))+'</div></section>'}
-function safe(x){return String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function render(){document.getElementById('cards').innerHTML=card('Teaching Hell')+card('Corporate Misery');const a=summary('Teaching Hell'),b=summary('Corporate Misery');let insights=[];if(!a.days||!b.days)insights.push('One or both campaigns have no reported data yet. Missing metrics are shown as dashes, not zero.');if(a.days&&b.days){const clicks=(a.clicks||0)+(b.clicks||0);insights.push('Together: '+number(clicks)+' clicks and '+pounds((a.spend||0)+(b.spend||0))+' spent.');insights.push(clicks<20?'Insufficient clicks to judge results. Keep bids steady and gather more evidence.':'Compare searches and profitability before increasing bids.');}insights.push('Recommendation: review search-term relevance before changing targeting. Judge profit against actual KDP royalties.');document.getElementById('insights').innerHTML=insights.map(i=>'<p>'+i+'</p>').join('');document.getElementById('terms').innerHTML=['Teaching Hell','Corporate Misery'].map(n=>'<section class="card"><h3>'+n+'</h3>'+((db?.search_terms?.[n]||[]).length?db.search_terms[n].slice(0,8).map(t=>'<div class="term"><span>'+safe(t.term)+'</span><span>'+number(t.clicks)+' clicks · '+pounds(t.spend)+'</span></div>').join(''):'<p>Search terms not yet available.</p>')+'</section>').join('')}
-async function load(manual=false){const button=document.getElementById('reload');if(manual){button.disabled=true;button.textContent='Checking…'}try{const r=await fetch('./data.json?'+Date.now(),{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);const latest=await r.json();const previous=db?.generated_at;db=latest;document.getElementById('status').innerHTML=db.generated_at?'Latest published: <b>'+new Date(db.generated_at).toLocaleString('en-GB',{timeZone:'Europe/London',dateStyle:'medium',timeStyle:'short'})+' UK</b>'+(db.partial?'<div>Search-term details may be incomplete</div>':''):'Waiting for first Windsor.ai import';if(manual&&(!db.generated_at||db.generated_at===previous)){document.getElementById('status').innerHTML+='<div style="margin-top:8px;color:#f0c87e">No newer data is published yet. GitHub Actions must complete its import first.</div>'}render()}catch(e){document.getElementById('status').textContent='Latest data could not be loaded. Check the publishing workflow.'}finally{button.disabled=false;button.textContent='Check for newly published data'}}
-document.querySelectorAll('[data-days]').forEach(b=>b.onclick=()=>{windowDays=b.dataset.days;document.querySelectorAll('[data-days]').forEach(x=>x.classList.remove('active'));b.classList.add('active');render()});document.getElementById('reload').onclick=()=>load(true);load();
-</script></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0c1729"><title>40 Shades — Advertising Performance</title>
+<style>
+:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:#f0f4ff;background:#0b1526}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse 90% 58% at 90% -10%,#263d5b 0%,#0b1526 72%)}
+main{max-width:1190px;margin:0 auto;padding:34px 24px 70px}header{display:flex;align-items:center;justify-content:space-between;gap:22px;flex-wrap:wrap}
+h1{font-size:clamp(32px,4.5vw,49px);line-height:1.13;letter-spacing:-.045em;margin:12px 0}h2{font-size:22px;letter-spacing:-.025em;margin:36px 0 15px}h3{margin:0;font-size:19px}.eyebrow{font-size:12px;color:#f7ce7d;font-weight:800;letter-spacing:.16em}
+.sub,.muted,small{color:#b6c7dc}p{line-height:1.52}p.muted{font-size:13px;margin:7px 0}
+.panel,.stat,.status{background:linear-gradient(140deg,#172940,#152239);border:1px solid #334761;border-radius:17px}
+.panel{padding:23px}.status{min-width:245px;max-width:355px;padding:16px 19px;font-size:13px;line-height:1.6;color:#d8e5f5}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:29px 0 23px}
+button{font:inherit;cursor:pointer;border-radius:22px;border:1px solid #3d5571;background:#1b304c;color:#e8f0fc;padding:10px 15px}
+button.active{background:#f5ca78;border-color:#f5ca78;color:#19243b;font-weight:700}button:hover{border-color:#f5ca78}button:disabled{opacity:.55;cursor:wait}.spacer{flex:1}
+.grid{display:grid;gap:16px}.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}.stat{padding:19px 20px}.stat .value{display:block;font-size:clamp(21px,2.7vw,30px);font-weight:800;letter-spacing:-.04em;margin:9px 0}.stat small{font-size:12px}
+.tag{display:inline-block;padding:4px 9px;border:1px solid #52617a;border-radius:12px;font-size:11px;color:#cad9ed}.gold{color:#f5ca78}.positive{color:#8de0bf}.negative{color:#ffa9a9}
+.columns{grid-template-columns:repeat(2,minmax(0,1fr))}.headline{font-size:33px;font-weight:800;color:#f5ca78;margin:9px 0}
+.booktop{display:flex;gap:10px;align-items:start;justify-content:space-between}.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px;border-top:1px solid #344761;margin-top:20px;padding-top:20px}
+.fact small{display:block;font-size:11px}.fact b{display:block;margin-top:5px;font-size:19px}.foot{color:#adbfd6;font-size:12px}
+.insights .item{padding:11px 0;border-bottom:1px solid #33465e;line-height:1.5}.insights .item:last-child{border:0}.insights .item b{display:block;margin-bottom:3px}.insights .item span{color:#c7d5e6}
+.term{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid #35465d}
+.term:last-child{border:0}.term .name{overflow-wrap:anywhere}.term .amount{font-size:12px;color:#c9d9ec;text-align:right;white-space:nowrap}
+.chart{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:9px;align-items:end;min-height:140px;padding-top:10px}.barcol{display:flex;align-items:center;flex-direction:column;gap:6px;justify-content:flex-end;height:140px}
+.bar{background:#f5ca78;border-radius:5px 5px 2px 2px;width:55%;min-height:2px}.barcol small{font-size:10px;white-space:nowrap}
+.legend{font-size:12px;color:#bdcce2}.glossary{grid-template-columns:repeat(3,minmax(0,1fr))}.glossary b{font-size:13px}.glossary p{font-size:12px;color:#b8c7dc;margin:7px 0 0}
+footer{font-size:12px;color:#9caec5;border-top:1px solid #2b3c53;padding-top:20px;margin-top:35px;line-height:1.6}
+@media(max-width:850px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.glossary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){main{padding:25px 15px 55px}.columns{grid-template-columns:1fr}.facts{grid-template-columns:repeat(2,minmax(0,1fr))}.glossary{grid-template-columns:1fr}.spacer{display:none}.status{width:100%;max-width:none}.kpis{gap:9px}.stat{padding:15px 13px}}
+</style>
+</head>
+<body><main>
+<header><div><div class="eyebrow">40 SHADES / AMAZON ADVERTISING</div><h1>Are the adverts working?</h1><p class="sub">What the books earned, what the ads cost, and what to change next.</p></div>
+<div class="status" id="status" aria-live="polite">Checking latest published figures…</div></header>
+<div class="toolbar"><button class="active" data-window="7">Last 7 days</button><button data-window="30">Last 30 days</button><button data-window="all">Since launch</button><span class="spacer"></span><button id="reload">Check for newer data</button></div>
+<section class="grid kpis" id="overview"></section>
+<h2>Compare the books</h2><section class="grid columns" id="books"></section>
+<h2>What the numbers are telling us</h2><section class="panel insights" id="insights"></section>
+<h2>Daily advertising spend</h2><section class="panel"><div class="legend">Last seven days · Both books combined · £ spent per day</div><div class="chart" id="chart"></div><div class="foot" id="chartnote"></div></section>
+<h2>What shoppers actually searched for</h2><section class="grid columns" id="terms"></section>
+<h2>What the metrics mean, in plain English</h2>
+<section class="grid glossary">
+<div class="panel"><b>Impressions</b><p>How many times an advert appeared on Amazon. Not unique people.</p></div>
+<div class="panel"><b>Clicks / CTR</b><p>Clicks are people tapping your advert. CTR is clicks per 100 times shown.</p></div>
+<div class="panel"><b>CPC</b><p>Cost per click: how much you pay, on average, for someone to visit the listing.</p></div>
+<div class="panel"><b>Conversion rate</b><p>Ad-attributed orders divided by ad clicks. Only meaningful once there's enough traffic.</p></div>
+<div class="panel"><b>ACoS</b><p>Ad spend divided by sales revenue attributed to adverts. A lower figure is usually better, but it isn't profit.</p></div>
+<div class="panel"><b>Estimated ad contribution</b><p>Attributed copies × £2.64 royalty, minus ad spend. Doesn't include organic sales or other business expenses.</p></div>
+</section>
+<footer>Amazon Ads UK figures via Windsor.ai, published through GitHub Actions. The £2.64 royalty per paperback is your approximate estimate, applied equally to both titles. Attribution can lag up to 14 days. These are ad-attributed sales only, not total KDP sales. Missing data is shown as unavailable, never assumed to be zero. This website is publicly accessible. Checking the page for newer data does not start an Amazon import.</footer>
+</main>
+<script>
+'use strict';
+const TITLES=['Teaching Hell','Corporate Misery'];const DEFAULT_ROYALTY=2.64;
+let database=null,period='7';
+const $=id=>document.getElementById(id);
+const currency=n=>n==null?'—':'£'+Number(n).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
+const whole=n=>n==null?'—':Math.round(n).toLocaleString('en-GB');
+const percent=n=>n==null?'—':n.toFixed(2)+'%';
+const safe=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const today=()=>new Date().toISOString().slice(0,10);
+function dates(windowName){
+  if(windowName==='all')return null;
+  const n=Number(windowName),d=new Date(today()+'T00:00:00Z');d.setUTCDate(d.getUTCDate()-n+1);return d.toISOString().slice(0,10);
+}
+function between(date,from,to){return typeof date==='string'&&date.length>=10&&(!from||date.slice(0,10)>=from)&&(!to||date.slice(0,10)<=to)}
+function pickRows(book,which=period,previous=false){
+  const rows=database?.campaigns?.[book]||[];
+  if(which==='all')return rows;
+  const start=dates(which);
+  if(!previous)return rows.filter(r=>between(r.date,start,today()));
+  const dt=new Date(start+'T00:00:00Z'),end=new Date(dt);end.setUTCDate(end.getUTCDate()-1);dt.setUTCDate(dt.getUTCDate()-Number(which));
+  return rows.filter(r=>between(r.date,dt.toISOString().slice(0,10),end.toISOString().slice(0,10)));
+}
+function sumNullable(rows,field){const vals=rows.map(r=>r[field]).filter(v=>v!==null&&v!==undefined&&v!=='');return vals.length?vals.reduce((a,b)=>a+Number(b),0):null}
+function metrics(book,which=period,previous=false){
+  const rows=pickRows(book,which,previous),x={hasData:rows.length>0,days:rows.length};
+  for(const k of ['impressions','clicks','spend','sales','orders','units'])x[k]=sumNullable(rows,k);
+  x.ctr=x.clicks!=null&&x.impressions>0?x.clicks/x.impressions*100:null;
+  x.cpc=x.spend!=null&&x.clicks>0?x.spend/x.clicks:null;
+  x.conversion=x.orders!=null&&x.clicks>0?x.orders/x.clicks*100:null;
+  x.cpa=x.spend!=null&&x.orders>0?x.spend/x.orders:null;
+  x.acos=x.spend!=null&&x.sales>0?x.spend/x.sales*100:null;
+  x.royalty=Number(database?.royalty_per_copy_gbp)||DEFAULT_ROYALTY;
+  x.adContribution=x.units!=null&&x.spend!=null?x.units*x.royalty-x.spend:null;
+  return x;
+}
+function combined(a,b){
+  const x={};for(const key of ['impressions','clicks','spend','sales','orders','units']){const v=[a[key],b[key]].filter(z=>z!=null);x[key]=v.length?v.reduce((s,n)=>s+n,0):null}
+  x.profit=a.adContribution!=null&&b.adContribution!=null?a.adContribution+b.adContribution:null;
+  x.partial=!a.hasData||!b.hasData;return x;
+}
+function kpi(label,value,hint,tone){return '<article class="stat"><small>'+label+'</small><span class="value '+(tone||'')+'">'+value+'</span><small>'+hint+'</small></article>'}
+function fact(label,value){return '<div class="fact"><small>'+label+'</small><b>'+value+'</b></div>'}
+function renderOverview(){
+  const a=metrics(TITLES[0]),b=metrics(TITLES[1]),all=combined(a,b);
+  const hint=all.partial?'Incomplete: one book is awaiting a report':'Across both titles';
+  $('overview').innerHTML=
+  kpi('Advertising spend',currency(all.spend),hint)+
+  kpi('Sales credited to ads',currency(all.sales),'Retail sales value, not royalties')+
+  kpi('Copies credited to ads',whole(all.units),all.partial?'Incomplete data':'Attributed units sold')+
+  kpi('Estimated ad contribution',currency(all.profit),all.partial?'Waiting for both books':all.profit==null?'Requires attributed units': 'Royalties less advertising spend',all.profit==null?'':all.profit>=0?'positive':'negative');
+}
+function renderBook(book){
+  const s=metrics(book),prev=period==='7'?metrics(book,'7',true):null;
+  let trend='';if(prev&&s.spend!=null&&prev.spend!=null&&prev.days>0)trend=' vs previous 7 days: '+currency(prev.spend)+' spend';
+  const info=s.hasData?'Ad figures for your selected period'+trend:'No attributed-product data returned for this period';
+  let contribution=s.adContribution==null?'—':currency(s.adContribution);
+  const label=s.adContribution==null?'Estimated ad contribution unavailable':s.adContribution>=0?'Estimated positive ad contribution':'Estimated negative ad contribution';
+  return '<article class="panel"><div class="booktop"><h3>40 Shades of '+book+'</h3><span class="tag">'+(s.hasData?'Reporting':'Awaiting data')+'</span></div>'+
+  '<p class="muted">'+info+'</p><div class="headline">'+contribution+'</div><div class="foot">'+label+' · Approx. £2.64 royalty per attributed copy</div>'+
+  '<div class="facts">'+fact('Ad spend',currency(s.spend))+fact('Ad-attributed sales',currency(s.sales))+fact('Attributed copies',whole(s.units))+
+  fact('Times shown',whole(s.impressions))+fact('Clicks',whole(s.clicks))+fact('Click-through rate',percent(s.ctr))+
+  fact('Average cost per click',currency(s.cpc))+fact('Conversion rate',percent(s.conversion))+fact('Cost per order',currency(s.cpa))+
+  fact('ACoS',percent(s.acos))+fact('Orders',whole(s.orders))+fact('Break-even orders',s.spend!=null?whole(Math.ceil(s.spend/(Number(database?.royalty_per_copy_gbp)||DEFAULT_ROYALTY))):'—')+
+  '</div><p class="foot">Break-even orders assume one paperback per order. Profit estimate uses attributed units when available; excludes organic purchases.</p></article>';
+}
+function insight(title,detail){return '<div class="item"><b>'+safe(title)+'</b><span>'+safe(detail)+'</span></div>'}
+function renderInsights(){
+  const a=metrics(TITLES[0]),b=metrics(TITLES[1]),x=combined(a,b),items=[];
+  if(x.partial)items.push(['Not all campaign data has arrived','A missing book is not a zero-performing book. We can assess the other title, but the combined figures are incomplete.']);
+  if(x.clicks!=null&&x.clicks<20)items.push(['Too soon for meaningful conversion conclusions','Only '+whole(x.clicks)+' ad clicks in the selected period. Keep bids steady rather than reacting to a tiny sample.']);
+  else if(x.clicks!=null&&x.orders===0)items.push(['Clicks without ad-attributed orders','There are '+whole(x.clicks)+' clicks and no attributed purchases so far. Check the book listing and search-term relevance before increasing spend.']);
+  if(a.hasData&&b.hasData&&a.impressions>0&&b.impressions>0&&a.ctr!=null&&b.ctr!=null&&x.clicks>=20){
+    const leader=a.ctr>b.ctr?'Teaching Hell':'Corporate Misery';
+    items.push(['Which advert attracts more interest?',leader+' has the higher click-through rate. Compare rates over a longer window before moving budget.']);
+  }
+  if(period==='7'){
+    for(const book of TITLES){
+      const now=metrics(book,'7'),previous=metrics(book,'7',true);
+      if(now.spend!=null&&previous.spend>0&&previous.days>0){
+        const change=(now.spend-previous.spend)/previous.spend*100;
+        if(Math.abs(change)>=20)items.push([book+' spending changed',currency(now.spend)+' in the past seven days versus '+currency(previous.spend)+' in the preceding seven ('+(change>0?'+':'')+change.toFixed(0)+'%).']);
+      }
+    }
+  }
+  for(const book of TITLES){
+    const s=metrics(book);
+    if(s.adContribution!=null&&s.units>0){
+      items.push([book+' advertising economics',whole(s.units)+' attributed copies × £2.64 estimated royalty − '+currency(s.spend)+' spend = '+currency(s.adContribution)+'.']);
+    }
+  }
+  if(x.clicks>=20&&x.orders>0&&x.profit!=null&&x.profit<0)items.push(['Advertising costs exceed estimated royalties','Review expensive search terms and high bids. Avoid scaling until you understand the gap.']);
+  items.push(['Recommended action',x.clicks==null?'Verify data availability before making any bid changes.':x.clicks<20?'Hold existing bids and budgets; revisit after more clicks and attributed orders.':'Inspect search terms and cost per order; consider targeted bids only with consistent purchase evidence.']);
+  if(database?.partial)items.push(['Some detail is incomplete','Windsor.ai did not return all search terms or supporting metrics. Main campaign figures may still be usable.']);
+  $('insights').innerHTML=items.slice(0,7).map(z=>insight(z[0],z[1])).join('');
+}
+function termRows(book){
+  const raw=database?.search_terms?.[book]||[];
+  if(!database?.search_term_date_filtered)return [];
+  const from=dates(period),to=today(),map=new Map();
+  for(const r of raw){if(!between(r.date,from,to))continue;const key=String(r.term||'');if(!key)continue;
+    const v=map.get(key)||{term:key,clicks:0,spend:0,units:0};
+    v.clicks+=Number(r.clicks||0);v.spend+=Number(r.spend||0);v.units+=Number(r.units||0);map.set(key,v)}
+  return [...map.values()].sort((a,b)=>b.spend-a.spend).slice(0,8);
+}
+function renderTerms(){
+  $('terms').innerHTML=TITLES.map(book=>{const rows=termRows(book);return '<div class="panel"><h3>'+book+'</h3><p class="muted">Searches or product identifiers that led to ad clicks, for the selected period.</p>'+
+  (rows.length?rows.map(r=>'<div class="term"><div class="name">'+safe(r.term)+'</div><div class="amount">'+whole(r.clicks)+' clicks · '+currency(r.spend)+'<br>'+whole(r.units)+' copies</div></div>').join(''):'<p class="muted">Dated search-term data not available yet. This does not imply no searches.</p>')+'</div>'}).join('');
+}
+function renderChart(){
+  const x=$('chart'),now=new Date(today()+'T00:00:00Z'),days=[];
+  for(let i=6;i>=0;i--){const d=new Date(now);d.setUTCDate(d.getUTCDate()-i);const date=d.toISOString().slice(0,10);const rows=TITLES.flatMap(b=>(database?.campaigns?.[b]||[]).filter(r=>r.date===date));days.push({date,value:sumNullable(rows,'spend')})}
+  const max=Math.max(0.01,...days.map(d=>d.value||0));
+  x.innerHTML=days.map(d=>{const height=d.value==null?2:Math.max(2,Math.round(d.value/max*105));return '<div class="barcol"><small>'+(d.value==null?'—':currency(d.value))+'</small><div class="bar" style="height:'+height+'px" title="'+safe(d.date)+'"></div><small>'+d.date.slice(5)+'</small></div>'}).join('');
+  $('chartnote').textContent='Daily chart always shows the last 7 calendar days. Missing data cannot be distinguished from zero spend for dates without any returned records.';
+}
+function render(){
+  if(!database)return;
+  document.querySelectorAll('[data-window]').forEach(b=>b.classList.toggle('active',b.dataset.window===period));
+  renderOverview();$('books').innerHTML=TITLES.map(renderBook).join('');renderInsights();renderTerms();renderChart();
+}
+async function load(manual=false){
+  const b=$('reload');if(manual){b.disabled=true;b.textContent='Checking…'}
+  try{
+    const r=await fetch('./data.json?cb='+Date.now(),{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);
+    const next=await r.json(),old=database?.generated_at;database=next;
+    $('status').innerHTML=next.generated_at?'Last successful data import:<br><b>'+safe(new Date(next.generated_at).toLocaleString('en-GB',{timeZone:'Europe/London',dateStyle:'medium',timeStyle:'short'}))+' UK</b>':
+      'Awaiting first successful Windsor.ai import';
+    if(manual&&(!next.generated_at||next.generated_at===old))$('status').innerHTML+='<div style="margin-top:6px;color:#f5ca78">No newer import available. The scheduled job is separate from this button.</div>';
+    render();
+  }catch(e){$('status').textContent='Data file could not be loaded. Check the GitHub publishing job.'}
+  finally{b.disabled=false;b.textContent='Check for newer data'}
+}
+document.querySelectorAll('[data-window]').forEach(b=>b.addEventListener('click',()=>{period=b.dataset.window;render()}));
+$('reload').addEventListener('click',()=>load(true));load();
+</script>
+</body></html>
