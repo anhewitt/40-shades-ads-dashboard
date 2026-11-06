@@ -104,7 +104,12 @@ function renderOverview(){
 }
 function renderBook(book){
   const s=metrics(book),prev=period==='7'?metrics(book,'7',true):null;
-  let trend='';if(prev&&s.spend!=null&&prev.spend!=null&&prev.days>0)trend=' vs previous 7 days: '+currency(prev.spend)+' spend';
+  let trend='';
+  if(prev&&prev.days>0){const bits=[];
+    if(s.spend!=null&&prev.spend!=null)bits.push('spend '+currency(s.spend)+' vs '+currency(prev.spend));
+    if(s.clicks!=null&&prev.clicks!=null)bits.push('clicks '+whole(s.clicks)+' vs '+whole(prev.clicks));
+    if(bits.length)trend=' · Previous 7 days comparison: '+bits.join('; ');
+  }
   const info=s.hasData?'Ad figures for your selected period'+trend:'No attributed-product data returned for this period';
   let contribution=s.adContribution==null?'—':currency(s.adContribution);
   const label=s.adContribution==null?'Estimated ad contribution unavailable':s.adContribution>=0?'Estimated positive ad contribution':'Estimated negative ad contribution';
@@ -113,8 +118,8 @@ function renderBook(book){
   '<div class="facts">'+fact('Ad spend',currency(s.spend))+fact('Ad-attributed sales',currency(s.sales))+fact('Attributed copies',whole(s.units))+
   fact('Times shown',whole(s.impressions))+fact('Clicks',whole(s.clicks))+fact('Click-through rate',percent(s.ctr))+
   fact('Average cost per click',currency(s.cpc))+fact('Conversion rate',percent(s.conversion))+fact('Cost per order',currency(s.cpa))+
-  fact('ACoS',percent(s.acos))+fact('Orders',whole(s.orders))+fact('Break-even orders',s.spend!=null?whole(Math.ceil(s.spend/(Number(database?.royalty_per_copy_gbp)||DEFAULT_ROYALTY))):'—')+
-  '</div><p class="foot">Break-even orders assume one paperback per order. Profit estimate uses attributed units when available; excludes organic purchases.</p></article>';
+  fact('ACoS',percent(s.acos))+fact('Orders',whole(s.orders))+fact('Break-even copies',s.spend!=null?whole(Math.ceil(s.spend/(Number(database?.royalty_per_copy_gbp)||DEFAULT_ROYALTY))):'—')+
+  '</div><p class="foot">Break-even copies = advertising spend ÷ £2.64 rounded up. Profit estimate uses attributed units when available; excludes organic purchases.</p></article>';
 }
 function insight(title,detail){return '<div class="item"><b>'+safe(title)+'</b><span>'+safe(detail)+'</span></div>'}
 function renderInsights(){
