@@ -19,6 +19,23 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      - name: Preserve last published live figures if the API is slow
+        run: |
+          python - <<'PY'
+          import json, urllib.request
+          from pathlib import Path
+          url = "https://anhewitt.github.io/40-shades-ads-dashboard/data.json"
+          try:
+              with urllib.request.urlopen(url, timeout=20) as response:
+                  live = json.load(response)
+              if live.get("generated_at") and isinstance(live.get("campaigns"), dict):
+                  Path("site/data.json").write_text(json.dumps(live, indent=2), encoding="utf-8")
+                  print("Saved last published data snapshot:", live["generated_at"])
+              else:
+                  print("No previous live snapshot to preserve")
+          except Exception as e:
+              print("Could not retrieve previous published snapshot:", type(e).__name__)
+          PY
       - name: Fetch Amazon Ads from Windsor.ai (when configured)
         env:
           WINDSOR_API_KEY: ${{ secrets.WINDSOR_API_KEY }}
