@@ -1,7 +1,7 @@
 """Refresh public 40 Shades dashboard snapshot from Windsor.ai Amazon Ads.
 API key is read only from GitHub Actions secret WINDSOR_API_KEY.
 """
-import json, os, sys, urllib.parse, urllib.request
+import json, os, sys, urllib.parse, urllib.request, urllib.error, socket, time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -33,8 +33,17 @@ def pull(fields):
            "date_to":datetime.now(timezone.utc).date().isoformat(),"select_accounts":ACCOUNT}
     url="https://connectors.windsor.ai/amazon_ads?"+urllib.parse.urlencode(query)
     req=urllib.request.Request(url,headers={"User-Agent":"40ShadesDashboard/1.0","Accept":"application/json"})
-    with urllib.request.urlopen(req,timeout=150) as response:
-        result=json.load(response)
+    result=None
+    for attempt in range(1, 4):
+        try:
+            with urllib.request.urlopen(req,timeout=70) as response:
+                result=json.load(response)
+            break
+        except (TimeoutError, socket.timeout, urllib.error.URLError) as exc:
+            print(f"Windsor attempt {attempt}/3: {type(exc).__name__}: {str(exc)[:140]}", flush=True)
+            if attempt == 3:
+                raise RuntimeError("Windsor.ai did not return data after three attempts") from exc
+            time.sleep(4 * attempt)
     if isinstance(result,dict):
         if result.get("error"):raise RuntimeError(str(result["error"]))
         result=result.get("data",result.get("result",result.get("rows",[])))
@@ -55,7 +64,9 @@ for r in rows:
     name=book_for(r,P)
     if not name:continue
     date=str(r.get("date",""))[:10]
-    if not date:continue
+    if not date:
+        print("Undated aggregate returned; cannot assign it to one calendar day", flush=True)
+        continue
     seen.add(name)
     output["campaigns"][name].append({"date":date,
         "impressions":num(r.get(P+"impressions")),
